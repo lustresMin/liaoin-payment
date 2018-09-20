@@ -1,6 +1,7 @@
 package com.liaoin.payment.core.model.wxpay.response;
 
 import lombok.Data;
+import org.simpleframework.xml.Element;
 import org.simpleframework.xml.Root;
 
 /**

@@ -16,4 +16,11 @@ public interface WxPayService {
 	 * @return
 	 */
 	PayResponse pay(PayRequest request);
+
+	/**
+	 * 异步回调
+	 * @param notifyData
+	 * @return
+	 */
+	PayResponse asyncNotify(String notifyData);
 }
