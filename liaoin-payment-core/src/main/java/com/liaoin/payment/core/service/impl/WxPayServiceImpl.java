@@ -2,9 +2,11 @@ package com.liaoin.payment.core.service.impl;
 
 import com.liaoin.payment.core.common.WxPaySignature;
 import com.liaoin.payment.core.constants.WxPayConstants;
-import com.liaoin.payment.core.model.PayRequest;
-import com.liaoin.payment.core.model.PayResponse;
+import com.liaoin.payment.core.model.PayH5Request;
+import com.liaoin.payment.core.model.PayH5Response;
+import com.liaoin.payment.core.model.PayMicropayRequest;
 import com.liaoin.payment.core.model.wxpay.WxPayApi;
+import com.liaoin.payment.core.model.wxpay.request.WxPayMicropayRequest;
 import com.liaoin.payment.core.model.wxpay.request.WxPayUnifiedorderRequest;
 import com.liaoin.payment.core.model.wxpay.response.WxPayAsyncResponse;
 import com.liaoin.payment.core.model.wxpay.response.WxPaySyncResponse;
@@ -41,7 +43,7 @@ public class WxPayServiceImpl implements WxPayService {
 	private PaymentProperties paymentProperties;
 
 	@Override
-	public PayResponse pay(PayRequest request) {
+	public PayH5Response payH5(PayH5Request request) {
 
 		WxPayUnifiedorderRequest build = WxPayUnifiedorderRequest.builder()
 				.outTradeNo(request.getOrderId())
@@ -55,7 +57,7 @@ public class WxPayServiceImpl implements WxPayService {
 				.notifyUrl(paymentProperties.getPay().getNotifyUrl())
 				.spbillCreateIp(paymentProperties.getPay().getSpbillCreateIp())
 				.build();
-		build.setSign(WxPaySignature.sign(buildMap(build), paymentProperties.getPay().getMchKey()));
+		build.setSign(WxPaySignature.sign(buildMapH5(build), paymentProperties.getPay().getMchKey()));
 
 		Retrofit retrofit = new Retrofit.Builder()
 				.baseUrl(WxPayConstants.WXPAY_GATEWAY)
@@ -85,12 +87,12 @@ public class WxPayServiceImpl implements WxPayService {
 	}
 
 	@Override
-	public PayResponse asyncNotify(String notifyData) {
+	public PayH5Response asyncNotifyH5(String notifyData) {
 		//xml解析为对象
 		WxPayAsyncResponse asyncResponse = (WxPayAsyncResponse) XmlUtil.fromXML(notifyData, WxPayAsyncResponse.class);
 
 		//签名校验
-		if (!WxPaySignature.verify(buildMap(asyncResponse), paymentProperties.getPay().getMchKey())) {
+		if (!WxPaySignature.verify(buildMapH5(asyncResponse), paymentProperties.getPay().getMchKey())) {
 			log.error("【微信支付异步通知】签名验证失败, response={}", asyncResponse);
 			throw new RuntimeException("【微信支付异步通知】签名验证失败");
 		}
@@ -111,7 +113,67 @@ public class WxPayServiceImpl implements WxPayService {
 		return buildPayResponse(asyncResponse);
 	}
 
-	private Map<String, String> buildMap(WxPayAsyncResponse response) {
+	/**
+	 * 刷卡支付
+	 * @param request
+	 * @return
+	 */
+	@Override
+	public PayH5Response payMicropay(PayMicropayRequest request) {
+		WxPayMicropayRequest build = WxPayMicropayRequest.builder()
+				.appid(paymentProperties.getPay().getAppId())
+				.mchId(paymentProperties.getPay().getMchId())
+				.nonceStr(RandomUtil.getRandomStr())
+				.spbillCreateIp(paymentProperties.getPay().getSpbillCreateIp())
+				.totalFee(MoneyUtil.Yuan2Fen(request.getOrderAmount()))
+				.outTradeNo(request.getOutTradeNo())
+				.authCode(request.getAuthCode())
+				.body(request.getBody())
+				.build();
+		build.setSign(WxPaySignature.sign(buildMapMicropay(build), paymentProperties.getPay().getMchKey()));
+
+		Retrofit retrofit = new Retrofit.Builder()
+				.baseUrl(WxPayConstants.WXPAY_GATEWAY)
+				.addConverterFactory(SimpleXmlConverterFactory.create())
+				.build();
+		String xml = XmlUtil.toXMl(build);
+		RequestBody body = RequestBody.create(MediaType.parse("application/xml; charset=utf-8"),xml);
+		Call<WxPaySyncResponse> call = retrofit.create(WxPayApi.class).micropay(body);
+		Response<WxPaySyncResponse> retrofitResponse  = null;
+		try{
+			retrofitResponse = call.execute();
+		}catch (IOException e) {
+			e.printStackTrace();
+		}
+		if (!retrofitResponse.isSuccessful()) {
+			throw new RuntimeException("【微信统一支付】发起支付, 网络异常");
+		}
+		WxPaySyncResponse response = retrofitResponse.body();
+
+		if(!response.getReturnCode().equals(WxPayConstants.SUCCESS)) {
+			throw new RuntimeException("【微信统一支付】发起支付, returnCode != SUCCESS, returnMsg = " + response.getReturnMsg());
+		}
+		if (!response.getResultCode().equals(WxPayConstants.SUCCESS)) {
+			throw new RuntimeException("【微信统一支付】发起支付, resultCode != SUCCESS, err_code = " + response.getErrCode() + " err_code_des=" + response.getErrCodeDes());
+		}
+		return buildPayResponse(response);
+	}
+
+	private Map<String,String> buildMapMicropay(WxPayMicropayRequest request) {
+		Map<String, String> map = new HashMap<>();
+		map.put("appid", request.getAppid());
+		map.put("mch_id", request.getMchId());
+		map.put("nonce_str", request.getNonceStr());
+		map.put("sign", request.getSign());
+		map.put("body", request.getBody());
+		map.put("out_trade_no", request.getOutTradeNo());
+		map.put("total_fee", String.valueOf(request.getTotalFee()));
+		map.put("spbill_create_ip", request.getSpbillCreateIp());
+		map.put("auth_code", request.getAuthCode());
+		return map;
+	}
+
+	private Map<String, String> buildMapH5(WxPayAsyncResponse response) {
 		Map<String, String> map = new HashMap<>();
 		map.put("return_code", response.getReturnCode());
 		map.put("return_msg", response.getReturnMsg());
@@ -140,12 +202,14 @@ public class WxPayServiceImpl implements WxPayService {
 		return map;
 	}
 
+
+
 	/**
 	 * 构造map
 	 * @param request
 	 * @return
 	 */
-	private Map<String, String> buildMap(WxPayUnifiedorderRequest request) {
+	private Map<String, String> buildMapH5(WxPayUnifiedorderRequest request) {
 		Map<String, String> map = new HashMap<>();
 		map.put("appid", request.getAppid());
 		map.put("mch_id", request.getMchId());
@@ -167,7 +231,7 @@ public class WxPayServiceImpl implements WxPayService {
 	 * @param response
 	 * @return
 	 */
-	private PayResponse buildPayResponse(WxPaySyncResponse response) {
+	private PayH5Response buildPayResponse(WxPaySyncResponse response) {
 		String timeStamp = String.valueOf(System.currentTimeMillis() / 1000);
 		String nonceStr = RandomUtil.getRandomStr();
 		String packAge = "prepay_id=" + response.getPrepayId();
@@ -181,7 +245,7 @@ public class WxPayServiceImpl implements WxPayService {
 		map.put("package", packAge);
 		map.put("signType", signType);
 
-		return PayResponse.builder()
+		return PayH5Response.builder()
 				.appId(response.getAppid())
 				.timeStamp(timeStamp)
 				.nonceStr(nonceStr)
@@ -191,8 +255,8 @@ public class WxPayServiceImpl implements WxPayService {
 				.build();
 	}
 
-	private PayResponse buildPayResponse(WxPayAsyncResponse response) {
-		return PayResponse.builder()
+	private PayH5Response buildPayResponse(WxPayAsyncResponse response) {
+		return PayH5Response.builder()
 					.orderAmount(MoneyUtil.Fen2Yuan(response.getTotalFee()))
 					.orderId(response.getOutTradeNo())
 					.outTradeNo(response.getTransactionId())

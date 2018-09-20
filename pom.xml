@@ -50,6 +50,7 @@
     </build>
     <modules>
         <module>liaoin-payment-core</module>
+        <module>payment-demo</module>
     </modules>
 
 </project>

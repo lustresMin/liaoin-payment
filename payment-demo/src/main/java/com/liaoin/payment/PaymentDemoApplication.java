@@ -1,12 +1,12 @@
-package com.liaoin.payment.core;
+package com.liaoin.payment;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class LiaoinPaymentCoreApplication {
+public class PaymentDemoApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(LiaoinPaymentCoreApplication.class, args);
+		SpringApplication.run(PaymentDemoApplication.class, args);
 	}
 }

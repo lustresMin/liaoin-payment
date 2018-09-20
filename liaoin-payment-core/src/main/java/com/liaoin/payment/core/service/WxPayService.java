@@ -1,7 +1,8 @@
 package com.liaoin.payment.core.service;
 
-import com.liaoin.payment.core.model.PayRequest;
-import com.liaoin.payment.core.model.PayResponse;
+import com.liaoin.payment.core.model.PayH5Request;
+import com.liaoin.payment.core.model.PayH5Response;
+import com.liaoin.payment.core.model.PayMicropayRequest;
 
 /**
  * @author mc
@@ -11,16 +12,23 @@ import com.liaoin.payment.core.model.PayResponse;
  */
 public interface WxPayService {
 	/**
-	 * 发起支付
+	 * H5发起支付
 	 * @param request
 	 * @return
 	 */
-	PayResponse pay(PayRequest request);
+	PayH5Response payH5(PayH5Request request);
 
 	/**
-	 * 异步回调
+	 * H5异步回调
 	 * @param notifyData
 	 * @return
 	 */
-	PayResponse asyncNotify(String notifyData);
+	PayH5Response asyncNotifyH5(String notifyData);
+
+	/**
+	 * 刷卡发起支付
+	 * @param request
+	 * @return
+	 */
+	PayH5Response payMicropay(PayMicropayRequest request);
 }

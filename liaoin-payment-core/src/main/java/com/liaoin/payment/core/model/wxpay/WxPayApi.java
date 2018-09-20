@@ -15,7 +15,7 @@ import retrofit2.http.POST;
 public interface WxPayApi {
 
 	/**
-	 * 统一下单
+	 * H5支付统一下单
 	 * @param body
 	 * @return
 	 */
@@ -29,4 +29,13 @@ public interface WxPayApi {
 	 */
 //	@POST("/secapi/pay/refund")
 //	Call<WxPayRefundResponse> refund(@Body RequestBody body);
+
+
+	/**
+	 * 刷卡支付统一下单
+	 * @param body
+	 * @return
+	 */
+	@POST("/pay/micropay")
+	Call<WxPaySyncResponse> micropay(@Body RequestBody body);
 }

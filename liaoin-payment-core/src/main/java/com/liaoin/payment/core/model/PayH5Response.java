@@ -18,7 +18,7 @@ import java.net.URI;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PayResponse {
+public class PayH5Response {
 
 	private String prePayParams;
 

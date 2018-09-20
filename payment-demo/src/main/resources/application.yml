@@ -1,0 +1,9 @@
+liaoin:
+  payment:
+    pay:
+      appId: wx3354d9b2f1b20627
+      mchKey: 4T6m7Mfhk6tEgctqy42H73ZF1Bo21231
+      mchId: 1513037201
+      keyPath: classpath:static/apiclient_cert.p12
+      notifyUrl:
+

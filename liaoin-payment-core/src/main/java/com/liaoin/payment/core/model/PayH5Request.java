@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PayRequest {
+public class PayH5Request {
 
 	/**
 	 * 支付方式.
